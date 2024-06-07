@@ -37,7 +37,7 @@ jobs:
         id: checkout-pr
         uses: actions/checkout@v4
         with:
-          path: src/config
+          path: /home/runner/work/config/config/betaflight/src/config/
 
       - name: get PR targets
         id: get-targets
