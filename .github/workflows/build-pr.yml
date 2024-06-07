@@ -33,6 +33,11 @@ jobs:
         id: get-config
         run: make configs
 
+      - name: Checkout PR
+        id: checkout-pr
+        uses: actions/checkout@v4
+        path: src/config
+
       - name: get PR targets
         id: get-targets
         run: echo "targets=$(git diff --name-only `git merge-base master HEAD` | grep '/config.h' | awk -F'/' '{print $2}' | jq -R -c 'split(" ")')" >> $GITHUB_OUTPUT
@@ -45,8 +50,10 @@ jobs:
       matrix:
         target: ${{ fromJson(needs.setup.outputs.targets) }}
     steps:
-      - name: Checkout code
+      - name: Checkout Betaflight
         uses: actions/checkout@v4
+        with:
+          repository: betaflight/betaflight
 
       - name: Fetch toolchain from cache
         uses: actions/cache@v4
