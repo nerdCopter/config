@@ -1,0 +1,79 @@
+# Builds Betaflight Firmware.
+#
+
+name: build-pr-firmware
+
+on:
+  pull_request_target:
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-22.04
+    outputs:
+      targets: ${{ steps.get-targets.outputs.targets }}
+    steps:
+      - name: Checkout Betaflight
+        uses: actions/checkout@v4
+        with:
+          repository: betaflight/betaflight
+
+      - name: Cache build toolchain
+        uses: actions/cache@v4
+        id: cache-toolchain
+        with:
+          path: tools
+          key: ${{ runner.os }}-${{ hashFiles('mk/tools.mk') }}
+
+      - name: Download and install toolchain
+        if: steps.cache-toolchain.outputs.cache-hit != 'true'
+        run: make arm_sdk_install
+
+      - name: Checkout PR
+        id: checkout-pr
+        uses: actions/checkout@v4
+        with:
+          path: /home/runner/work/config/config/betaflight/src/config/
+
+      - name: get PR targets
+        id: get-targets
+        run: echo "targets=$(git diff --name-only `git merge-base master HEAD` | grep '/config.h' | awk -F'/' '{print $2}' | jq -R -c 'split(" ")')" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build
+    needs: setup
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
+    steps:
+      - name: Checkout Betaflight
+        uses: actions/checkout@v4
+        with:
+          repository: betaflight/betaflight
+
+      - name: Fetch toolchain from cache
+        uses: actions/cache@v4
+        id: cache-toolchain
+        with:
+          path: tools
+          key: ${{ runner.os }}-${{ hashFiles('mk/tools.mk') }}
+
+      - name: Checkout PR
+        id: checkout-pr
+        uses: actions/checkout@v4
+        with:
+          path: /home/runner/work/config/config/betaflight/src/config/
+
+      - name: Build target (without revision)
+        run: make EXTRA_FLAGS=-Werror ${{ matrix.target }}
+
+  result:
+    name: Complete
+    needs: [build]
+    if: ${{ always() }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check build matrix result
+        if: ${{ needs.build.result != 'success' }}
+        run: exit 1
