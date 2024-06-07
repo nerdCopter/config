@@ -36,7 +36,8 @@ jobs:
       - name: Checkout PR
         id: checkout-pr
         uses: actions/checkout@v4
-        path: src/config
+        with:
+          path: src/config
 
       - name: get PR targets
         id: get-targets
