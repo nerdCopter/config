@@ -63,6 +63,17 @@ jobs:
           path: tools
           key: ${{ runner.os }}-${{ hashFiles('mk/tools.mk') }}
 
+      - name: Checkout PR
+        id: checkout-pr
+        uses: actions/checkout@v4
+        with:
+          path: /home/runner/work/config/config/betaflight/src/config/
+
+      - name: Build target (without revision)
+        run: make EXTRA_FLAGS=-Werror ${{ matrix.target }}
+
+  result:
+    name: Complete
       - name: Hydrate configuration
         id: get-config
         run: make configs
@@ -107,7 +118,7 @@ jobs:
       - name: Check build matrix result
         if: ${{ needs.build.result != 'success' }}
         run: exit 1
-
 #      - name: Check test result
 #        if: ${{ needs.test.result != 'success' }}
 #        run: exit 1
+
