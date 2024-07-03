@@ -29,6 +29,10 @@ jobs:
         if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: make arm_sdk_install
 
+      - name: Hydrate configuration
+        id: get-config
+        run: make configs
+
       - name: Checkout PR
         id: checkout-pr
         uses: actions/checkout@v4
@@ -70,6 +74,43 @@ jobs:
 
   result:
     name: Complete
+      - name: Hydrate configuration
+        id: get-config
+        run: make configs
+
+      - name: Build target (without revision)
+        if: inputs.release_build == true
+        run: make EXTRA_FLAGS=-Werror ${{ matrix.target }}
+
+      - name: Build target (with revision)
+        if: inputs.release_build == false
+        run: make EXTRA_FLAGS=-Werror ${{ matrix.target }}_rev
+
+      - name: Publish build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Assets
+          path: obj/*.hex
+          retention-days: 60
+
+#  test:
+#    name: Test
+#    runs-on: ubuntu-22.04
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Install dependencies
+#        run: sudo apt-get install -y libblocksruntime-dev clang-15
+#
+#      - name: Run sanity checks
+#        run: make EXTRA_FLAGS=-Werror checks
+#
+#      - name: Run all unit tests
+#        run: make EXTRA_FLAGS=-Werror test-all
+
+  result:
+    name: Complete
+#    needs: [build, test]
     needs: [build]
     if: ${{ always() }}
     runs-on: ubuntu-22.04
@@ -77,3 +118,7 @@ jobs:
       - name: Check build matrix result
         if: ${{ needs.build.result != 'success' }}
         run: exit 1
+#      - name: Check test result
+#        if: ${{ needs.test.result != 'success' }}
+#        run: exit 1
+
